@@ -10,9 +10,12 @@ from tensorflow.python.keras.preprocessing.image import load_img, img_to_array
 from tensorflow.python.keras.applications import ResNet50
 from PIL import Image
 import json
+from flask_cors import CORS
+
 
 # Flask 객체를 app에 할당 
 app = Flask(__name__)
+CORS(app)
 
 ##### API routing #####
 
@@ -74,10 +77,10 @@ def prdict_image():
     def read_and_prep_image(img_file, img_height=image_size, img_width=image_size):
         img = Image.open(img_file.stream)
         img = img.resize((img_height, img_width))
-        img_array = np.array(img)
-        output = preprocess_input(img_array)
-        test_data = output.reshape((1,) + output.shape)
-        return(test_data)
+        img_array = img_to_array(img)
+        img_array = np.expand_dims(img_array, axis=0)  # 모델에 맞게 차원 확장
+        img_array = preprocess_input(img_array)
+        return img_array
 
 
     # predict 및 결과 출력 함수 
@@ -86,12 +89,11 @@ def prdict_image():
         test_data = read_and_prep_image(img_file)
         preds = my_model.predict(test_data)
         most_likely_labels = decode_predictions(preds, top=3, class_list_path=class_list_path)
-        return most_likely_labels[0][0][1] , most_likely_labels[0][1][1] 
+        return most_likely_labels[0][0][1],most_likely_labels[0][1][1]
     
     result1, result2 = model_predict(model_weight_path, img_file, class_list_path)
     # print(result)
-    data = {'result1':result1, 'result2' : result2}
-    
+    data = {'result1':result1,'result2':result2}
     return jsonify(data)
 
 ###### API routing end #######
